@@ -1,13 +1,15 @@
+import os
+import sqlite3
 import config
 import telebot
-import sqlite3
 from telebot import types
-import os
 
 bot = telebot.TeleBot(config.token)
+
 name = None
 artist = None
 old_name = None
+
 
 def get_playlist_info():
     conn = sqlite3.connect('music.sql')
@@ -19,6 +21,7 @@ def get_playlist_info():
     info = '\n'.join(f'Название трека: {i[1]}, Исполнитель: {i[2]}' for i in loadings)
     return info
 
+
 def create_main_markup():
     markup = types.ReplyKeyboardMarkup()
     btn_list = ['/listen', '/add', '/view_all', '/options']
@@ -26,13 +29,16 @@ def create_main_markup():
         markup.row(types.KeyboardButton(btn))
     return markup
 
+
 def send_playlist(message):
     info = get_playlist_info()
     bot.send_message(message.chat.id, 'ВАШ ПЛЕЙЛИСТ:')
     bot.send_message(message.chat.id, info)
 
+
 def start_message(message, text):
     bot.send_message(message.chat.id, text, reply_markup=create_main_markup())
+
 
 @bot.message_handler(commands=['help'])
 def help_message(message):
@@ -40,9 +46,11 @@ def help_message(message):
         k = file.read()
     start_message(message, k)
 
+
 @bot.message_handler(commands=['start'])
 def start(message):
     start_message(message, f'Привет, {message.from_user.first_name}, напиши /help')
+
 
 @bot.message_handler(commands=['listen'])
 def listen(message):
@@ -51,6 +59,7 @@ def listen(message):
         bot.register_next_step_handler(message, music_player)
     except sqlite3.OperationalError:
         bot.send_message(message.chat.id, 'Ты пока не загрузил песни')
+
 
 def music_player(message):
     conn = sqlite3.connect('music.sql')
@@ -65,13 +74,16 @@ def music_player(message):
         with open(file_path, 'rb') as file:
             bot.send_audio(message.chat.id, file, title=f'{checkout}')
 
+
 @bot.message_handler(commands=['view_all'])
 def view_all(message):
     bot.send_message(message.chat.id, get_playlist_info())
 
+
 @bot.callback_query_handler(func=lambda callback: True)
 def callback_message(callback):
     bot.send_message(callback.message.chat.id, get_playlist_info())
+
 
 @bot.message_handler(commands=['add'])
 def song_name(message):
@@ -84,11 +96,13 @@ def song_name(message):
     bot.send_message(message.chat.id, 'Введи название песни')
     bot.register_next_step_handler(message, naming)
 
+
 def naming(message):
     global name
     name = message.text
     bot.send_message(message.chat.id, 'отправь аудио')
     bot.register_next_step_handler(message, save_audio)
+
 
 @bot.message_handler(content_types=['audio'])
 def save_audio(message):
@@ -109,8 +123,10 @@ def save_audio(message):
 
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton('Весь плейлист', callback_data='loadings'))
-    bot.delete_message(message.chat.id, message.message_id)
+    bot.delete_message
+    (message.chat.id, message.message_id)
     bot.send_message(message.chat.id, 'Трек добавлен', reply_markup=markup)
+
 
 @bot.message_handler(commands=['options'])
 def options_message(message):
@@ -118,7 +134,8 @@ def options_message(message):
     btn_list = ['/delete', '/edit']
     for btn in btn_list:
         markup.row(types.KeyboardButton(btn))
-    bot.send_message(message.chat.id, 'Что вы хотите сделать ?', reply_markup=markup)
+    bot.send_message(message.chat.id, 'Что вы хотите сделать?', reply_markup=markup)
+
 
 @bot.message_handler(commands=['delete'])
 def preparation_for_delete(message):
@@ -126,9 +143,11 @@ def preparation_for_delete(message):
     bot.send_message(message.chat.id, get_playlist_info())
     bot.register_next_step_handler(message, delete)
 
+
 def delete(message):
     delete_track(message.text)
     bot.send_message(message.chat.id, get_playlist_info(), reply_markup=create_main_markup())
+
 
 def delete_track(track_name):
     conn = sqlite3.connect('music.sql')
@@ -145,11 +164,13 @@ def delete_track(track_name):
     except OSError:
         bot.send_message(message.chat.id, 'Такого трека нет в твоём плейлисте, друг')
 
+
 @bot.message_handler(commands=['edit'])
 def find_old_name(message):
     bot.send_message(message.chat.id, 'Введи старое название песни')
     bot.send_message(message.chat.id, get_playlist_info())
     bot.register_next_step_handler(message, new_name)
+
 
 def new_name(message):
     global old_name
@@ -157,10 +178,12 @@ def new_name(message):
     bot.send_message(message.chat.id, 'Введи новое название песни')
     bot.register_next_step_handler(message, edit)
 
+
 def edit(message):
     new_track_name = message.text
     update_track_name(old_name, new_track_name)
     bot.send_message(message.chat.id, get_playlist_info(), reply_markup=create_main_markup())
+
 
 def update_track_name(old_name, new_name):
     conn = sqlite3.connect('music.sql')
@@ -176,7 +199,8 @@ def update_track_name(old_name, new_name):
         os.rename(old_file_path, new_file_path)
         bot.send_message(message.chat.id, 'Запись успешно обновлена')
     except OSError:
-        bot.send_message(message.chat.id, 'Похоже такого трека нету в твоём плейлисте, друг')
+        bot.send_message(message.chat.id, 'Похоже такого трека нет в твоём плейлисте, друг')
+
 
 @bot.message_handler()
 def txt_random_validation(message):
@@ -185,6 +209,7 @@ def txt_random_validation(message):
         with open('validation.txt', 'r') as file:
             k = file.read()
         bot.send_message(message.chat.id, k)
+
 
 bot.polling()
 
