@@ -10,6 +10,7 @@ name = None
 artist = None
 old_name = None
 
+print('Я тут был ')
 
 def get_playlist_info():
     conn = sqlite3.connect('music.sql')
